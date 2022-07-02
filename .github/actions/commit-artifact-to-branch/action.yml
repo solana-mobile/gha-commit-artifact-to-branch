@@ -1,0 +1,66 @@
+name: Commit artifact to branch
+description: Commit a GitHub uploaded artifact to a target branch. This is useful for, e.g., committing build output to gh-pages.
+
+inputs:
+  token:
+    required: true
+    type: string
+    description: a GitHub token to use when committing. If the commit should trigger further workflows (for e.g., a GitHub Pages deployment flow), make sure to use a PAT.
+  branch:
+    required: true
+    type: string
+    description: the branch name to commit to
+  artifact-name:
+    required: true
+    type: string
+    description: the name of an artifact (previously uploaded with actions/upload-artifact)
+  dest:
+    required: false
+    type: string
+    default: ''
+    description: the destination directory to commit the artifact into
+  commit-author-name:
+    required: false
+    type: string
+    default: 'Continuous Integration'
+    description: the Git author name for the generated commit
+  commit-author-email:
+    required: false
+    type: string
+    default: ''
+    description: the Git author email for the generated commit
+  commit-message:
+    required: false
+    type: string
+    default: 'Committing GitHub Actions workflow artifact'
+    description: the Git commit message
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ inputs.branch }}
+        path: .commit-artifact-to-branch-${{ inputs.artifact-name }}-${{ inputs.branch }}
+        token: ${{ inputs.token }}
+    - name: Clear dest
+      run: rm -drfv './${{ inputs.dest }}/*'
+      shell: bash
+      working-directory: .commit-artifact-to-branch-${{ inputs.artifact-name }}-${{ inputs.branch }}
+    - uses: actions/download-artifact@v3
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: .commit-artifact-to-branch-${{ inputs.artifact-name }}-${{ inputs.branch }}/${{ inputs.dest }}
+    - name: Commit artifact
+      run: |
+        git config user.name '${{ inputs.commit-author-name }}'
+        git config user.email '${{ inputs.commit-author-email }}'
+        git add './${{ inputs.dest }}'
+        git diff-index --quiet --cached HEAD -- && {
+          echo 'Nothing to commit; exiting'
+          exit 0
+        }
+        git commit -m '${{ inputs.commit-message }}' --allow-empty-message
+        git push --force-with-lease origin '${{ inputs.branch }}'
+      shell: bash
+      working-directory: .commit-artifact-to-branch-${{ inputs.artifact-name }}-${{ inputs.branch }}
