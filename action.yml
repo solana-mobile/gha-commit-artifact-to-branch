@@ -44,7 +44,7 @@ runs:
         path: .commit-artifact-to-branch-${{ inputs.artifact-name }}-${{ inputs.branch }}
         token: ${{ inputs.token }}
     - name: Clear dest
-      run: rm -drfv './${{ inputs.dest }}/*'
+      run: rm -rfv ./'${{ inputs.dest }}'/*
       shell: bash
       working-directory: .commit-artifact-to-branch-${{ inputs.artifact-name }}-${{ inputs.branch }}
     - uses: actions/download-artifact@v3
@@ -55,7 +55,7 @@ runs:
       run: |
         git config user.name '${{ inputs.commit-author-name }}'
         git config user.email '${{ inputs.commit-author-email }}'
-        git add './${{ inputs.dest }}'
+        git add ./'${{ inputs.dest }}'
         git diff-index --quiet --cached HEAD -- && {
           echo 'Nothing to commit; exiting'
           exit 0
